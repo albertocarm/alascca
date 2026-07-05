@@ -1,0 +1,11 @@
+"endpoint","stratum","model","hr","lo","hi","P_lt1","P_lt060"
+"DFS","A","Dynamic borrowing",0.576,0.356,0.944,0.987,0.566
+"DFS","A","Standalone",0.61,0.342,1.087,0.953,0.478
+"DFS","B","Dynamic borrowing",0.538,0.332,0.861,0.995,0.674
+"DFS","B","Standalone",0.51,0.293,0.888,0.991,0.717
+"DFS","Pooled (mu)","Dynamic borrowing",0.556,0.278,1.116,0.956,0.587
+"Recurrence","A","Dynamic borrowing",0.465,0.261,0.836,0.995,0.805
+"Recurrence","A","Standalone",0.49,0.242,0.99,0.977,0.714
+"Recurrence","B","Dynamic borrowing",0.442,0.247,0.781,0.997,0.852
+"Recurrence","B","Standalone",0.42,0.211,0.835,0.993,0.846
+"Recurrence","Pooled (mu)","Dynamic borrowing",0.453,0.212,0.968,0.982,0.77
