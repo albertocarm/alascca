@@ -38,7 +38,7 @@ endpoints <- list(
 fit_ep <- function(ep) bayesmeta(y = endpoints[[ep]]$y, sigma = endpoints[[ep]]$se,
                                  labels = c("A", "B"), tau.prior = tau_prior(0.5))
 
-base_theme <- theme_bw(base_size = 11) +
+base_theme <- theme_minimal(base_size = 11) +
   theme(text = element_text(colour = INK), axis.text = element_text(colour = INK),
         panel.grid.minor = element_blank(), legend.position = "top",
         legend.title = element_blank(), strip.background = element_rect(fill = "grey95", colour = NA),
@@ -72,15 +72,16 @@ fig2 <- ggplot(df, aes(hr, ypos, colour = type)) +
   geom_vline(data = muband, aes(xintercept = mu), linetype = "22", colour = NAVY, linewidth = 0.5) +
   geom_segment(aes(x = lo, xend = hi, y = ypos, yend = ypos), linewidth = 0.9) +
   geom_point(aes(shape = type), size = 2.8, fill = "white", stroke = 1.0) +
-  geom_text(aes(x = LABX, label = label), hjust = 0, size = 2.7, show.legend = FALSE) +
+  geom_text(aes(x = LABX, label = label), hjust = 0, size = 2.7, colour = INK, show.legend = FALSE) +
   annotate("text", x = LABX, y = 2.82, label = "HR (95% CI / CrI)", hjust = 0, size = 2.6,
            fontface = "italic", colour = INK) +
-  scale_colour_manual(values = c("Standalone" = GREY, "Dynamic borrowing" = BLUE), labels = leg) +
+  scale_colour_manual(values = c("Standalone" = GOLD, "Dynamic borrowing" = BLUE), labels = leg) +
   scale_shape_manual(values = c("Standalone" = 21, "Dynamic borrowing" = 19), labels = leg) +
   scale_x_continuous(trans = "log", breaks = c(0.2, 0.3, 0.5, 0.7, 1.0), limits = c(0.2, 6.2)) +
   scale_y_continuous(breaks = c(1, 2), labels = c("Group B", "Group A"), limits = c(0.65, 2.95)) +
   facet_wrap(~endpoint, ncol = 1) +
-  labs(x = "Hazard ratio (log scale); values below 1 favour aspirin", y = NULL) + base_theme
+  labs(x = "Hazard ratio (log scale); values below 1 favour aspirin", y = NULL) +
+  base_theme + theme(panel.grid.major.y = element_blank())
 save_fig("figure_2_forest", fig2, 7.2, 5.2)
 
 # ---- Figure 3: adaptive behaviour of the borrowing --------------------------
@@ -127,8 +128,8 @@ brks <- c(0.3, 0.4, 0.5, 0.7, 1.0, 1.4)
 
 fig4 <- ggplot(dots, aes(x = loghr, fill = benefit)) +
   geom_vline(xintercept = 0, colour = "grey40", linewidth = 0.5) +
-  geom_dotplot(method = "histodot", binwidth = 0.05, dotsize = 0.9, stackratio = 1.05, colour = NA) +
-  scale_fill_manual(values = c("Aspirin benefit (HR < 1)" = BLUE, "No benefit (HR >= 1)" = RED)) +
+  geom_dotplot(method = "histodot", binwidth = 0.05, dotsize = 0.9, stackratio = 1.05, colour = "grey60") +
+  scale_fill_manual(values = c("Aspirin benefit (HR < 1)" = BLUE, "No benefit (HR >= 1)" = GOLD)) +
   scale_x_continuous(breaks = log(brks), labels = brks) +
   facet_wrap(~model, ncol = 1) +
   labs(x = "Hazard ratio for disease free survival (log scale)", y = NULL) +
