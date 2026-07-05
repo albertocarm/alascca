@@ -1,99 +1,64 @@
-# ALASCCA — Bayesian dynamic borrowing across molecular strata
+# ALASCCA reanalysis: Bayesian dynamic borrowing
 
-Reproducible code for a hierarchical Bayesian re-analysis of the two prespecified
-molecular strata of the ALASCCA trial (adjuvant low-dose aspirin in PI3K-altered
-colorectal cancer; Martling et al., *N Engl J Med* 2025;393:1051–1064).
+Code for a hierarchical Bayesian reanalysis of the two molecular strata of the
+ALASCCA trial (adjuvant aspirin in colorectal cancer with PI3K pathway
+alterations; Martling et al., N Engl J Med 2025;393:1051-1064). It accompanies a
+short methodological paper submitted to Clinical and Translational Oncology.
 
-The analysis uses **only the published summary-level subgroup hazard ratios and
-their 95% confidence intervals** — no individual patient data — so every number
-and figure can be reproduced directly from the trial report.
+## The question
 
-## Background
+ALASCCA analysed its two prespecified strata separately: group A, the canonical
+PIK3CA hotspot mutations in exon 9 or 20, and group B, other predicted activating
+alterations in PIK3CA, PIK3R1 or PTEN. The two strata gave almost identical hazard
+ratios, but because each was analysed on its own the group A disease free survival
+estimate was not significant (0.61, 95% CI 0.34 to 1.08), while group B was.
+Analysing the strata separately keeps biological noise down but loses statistical
+power; pooling them into one analysis recovers the power but assumes the strata
+behave identically.
 
-ALASCCA analysed two disjoint molecular strata separately: **group A**
-(*PIK3CA* exon 9/20 hotspot mutations) and **group B** (other moderate/high-impact
-variants in *PIK3CA*, *PIK3R1* or *PTEN*). The two strata gave concordant effects,
-but the group-A disease-free-survival estimate was not statistically significant
-in isolation (HR 0.61, 95% CI 0.34–1.08). Analysing strata separately protects
-against biological noise but loses power; pooling them recovers power but assumes
-the strata are identical.
+## The reanalysis
 
-This code implements a third option, **dynamic borrowing** (hierarchical partial
-pooling), in which each stratum borrows strength from the other in proportion to
-their observed concordance:
+Rather than choose, we let the strata share information according to how similar
+they actually turn out to be. Each stratum effect is treated as a draw from a
+common distribution, and a single heterogeneity parameter tau, estimated from the
+data, controls how much they are pulled together:
 
-```
-y_i      ~ Normal(theta_i, se_i^2)     # observed log-HR of stratum i
-theta_i  ~ Normal(mu, tau^2)           # borrowing layer, i = A, B
-mu       ~ vague ; tau ~ Half-Normal(0.5)
-```
+    y_i     ~ Normal(theta_i, se_i^2)
+    theta_i ~ Normal(mu, tau^2),   i = A, B
+    tau     ~ Half-Normal(0.5)
 
-The between-stratum heterogeneity `tau` is learned from the data and governs how
-much borrowing occurs: small `tau` → strata share strength; large `tau` → strata
-are kept apart.
+When tau is small the strata share strength and shrink toward the common effect;
+when it is large they stay apart. On the ALASCCA data tau is small (posterior
+median around 0.24 for disease free survival), so group A borrows from the
+concordant group B. Its disease free survival estimate moves to 0.58 (95% credible
+interval 0.36 to 0.94), which no longer includes one, and the posterior probability
+that aspirin helps rises from 95 to 99 percent. Recurrence is reinforced in the
+same way. A sensitivity analysis included here shows the borrowing shutting itself
+off when strata are made to diverge with precise data, so it cannot manufacture an
+agreement that is not there.
 
-## Repository layout
+Everything runs from the published summary hazard ratios, without individual
+patient data, so the results can be reproduced from the trial report alone.
 
-```
-R/
-  01_analysis.R          estimates, posterior probabilities, tau-prior sensitivity
-  02_figures.R           Figure 2 (forest) and Figure 3 (data-driven borrowing)
-  03_figure_concept.R    Figure 1 (teaching schematic)
-figures/                 generated figures (PNG, 300 dpi)
-results/                 generated tables (CSV)
-```
+## Reproducing it
 
-## Requirements
+You need R 4.3 or later with a few packages:
 
-- R ≥ 4.3
-- Packages: `bayesmeta`, `ggplot2`, `patchwork`, `dplyr`
+    install.packages(c("bayesmeta", "ggplot2", "ggsci", "dplyr"))
 
-```r
-install.packages(c("bayesmeta", "ggplot2", "patchwork", "dplyr"))
-```
+Then, from the repository root:
 
-Results below were produced with R 4.3.2 and `bayesmeta` 3.5, `ggplot2` 4.0.0,
-`patchwork` 1.3.2, `dplyr` 1.1.4.
+    Rscript R/01_analysis.R          # estimates and tau-prior sensitivity -> results/
+    Rscript R/02_figures.R           # forest, adaptive borrowing, quantile dot plot -> figures/
+    Rscript R/03_figure_concept.R    # schematic of split / borrow / lump -> figures/
 
-## How to reproduce
+Tables are written to `results/` and figures to `figures/` as PDF and PNG. The
+results were produced under R 4.3.2 with bayesmeta 3.5, ggplot2 4.0.0, ggsci 4.0.0
+and dplyr 1.1.4.
 
-Run from the repository root:
+## Source and license
 
-```sh
-Rscript R/01_analysis.R          # writes results/results_table.csv, results/tau_sensitivity.csv
-Rscript R/02_figures.R           # writes figures/fig2_forest.png, figures/fig3_dynamic.png
-Rscript R/03_figure_concept.R    # writes figures/fig1_concept.png
-```
-
-Each script is self-contained and re-derives its inputs from the published
-hazard ratios.
-
-## Key result
-
-Borrowing strength from the concordant group B shifts the group-A
-disease-free-survival estimate from HR 0.61 (0.34–1.08), which includes no effect,
-to HR 0.58 (95% credible interval 0.36–0.94), which excludes it; the posterior
-probability of benefit rises from 95.3% to 98.7%. The shared effect is robust to
-the `tau` prior, and a sensitivity sweep (`02_figures.R`, Figure 3) shows that
-borrowing switches off automatically when strata genuinely diverge with precise
-data.
-
-![Concept: split, dynamic borrowing, lump](figures/fig1_concept.png)
-
-## Data source
-
-All inputs are the published ALASCCA subgroup results:
-
-> Martling A, Hed Myrberg I, Nilbert M, et al. Low-dose aspirin for PI3K-altered
-> localized colorectal cancer. *N Engl J Med.* 2025;393(11):1051–1064.
-
-## Citation
-
-This code accompanies a methodological brief article (submitted):
-
-> Carmona-Bayonas A. Filtering noise without sacrificing power: Bayesian dynamic
-> borrowing across the molecular strata of the ALASCCA aspirin trial.
-
-## License
+Martling A, Hed Myrberg I, Nilbert M, et al. Low-dose aspirin for PI3K-altered
+localized colorectal cancer. N Engl J Med. 2025;393(11):1051-1064.
 
 Released under the MIT License (see `LICENSE`).
