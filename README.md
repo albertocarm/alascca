@@ -50,7 +50,7 @@ Then, from the repository root:
 
     Rscript R/01_analysis.R          # estimates and tau-prior sensitivity -> results/
     Rscript R/02_figures.R           # forest, adaptive borrowing, quantile dot plot -> figures/
-    Rscript R/03_figure_concept.R    # schematic of split / borrow / lump -> figures/
+    Rscript R/03_figure_concept.R    # Kruschke diagram of the hierarchical model -> figures/
 
 Tables are written to `results/` and figures to `figures/` as PDF and PNG. The
 results were produced under R 4.3.2 with bayesmeta 3.5, ggplot2 4.0.0, ggsci 4.0.0

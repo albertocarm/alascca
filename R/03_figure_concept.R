@@ -1,66 +1,65 @@
 # =============================================================================
 #  03_figure_concept.R
-#  Figure 1: the three ways to analyse two molecular strata
-#  (split, dynamic borrowing, lump). Kept deliberately spare; the interpretation
-#  is given in the manuscript caption. Colours follow the JCO palette (ggsci).
+#  Figure 1: Kruschke style diagram of the hierarchical borrowing model.
+#  Reads top to bottom: priors on mu and tau, the shared distribution that the
+#  two stratum effects are drawn from, and the likelihood that links them to the
+#  observed log hazard ratios. Colours follow the JCO palette (ggsci).
 #
 #  Run from the repository root:  Rscript R/03_figure_concept.R
 # =============================================================================
-suppressMessages({ library(ggplot2); library(ggsci) })
+suppressMessages({ library(ggplot2); library(patchwork); library(ggsci) })
 dir.create("figures", showWarnings = FALSE)
 
 jco  <- pal_jco("default")(10)
-BLUE <- jco[1]; GREY <- jco[3]; DGOLD <- "#8F7700"; INK <- "#000000"
-save_both <- function(name, plot, w, h) {
-  ggsave(file.path("figures", paste0(name, ".pdf")), plot, width = w, height = h, device = cairo_pdf)
-  ggsave(file.path("figures", paste0(name, ".png")), plot, width = w, height = h, dpi = 300, bg = "white")
-}
+BLUE <- jco[1]; FILL <- "#BcD9EC"; INK <- "#000000"
+dhn  <- function(x, s) ifelse(x < 0, 0, sqrt(2/pi)/s * exp(-x^2/(2*s^2)))
+arr  <- arrow(angle = 20, length = unit(0.26, "cm"), type = "closed")
+th   <- theme_void() +
+  theme(plot.subtitle = element_text(hjust = 0.5, size = 10, colour = INK),
+        plot.title = element_text(hjust = 0.5, size = 11, face = "bold", colour = INK),
+        plot.margin = margin(2, 2, 2, 2))
+theme_set(th)
 
-# Map a hazard ratio to a column's local x range (log scale).
-xmap <- function(hr, cx, hw = 11, lohr = 0.25, hihr = 1.7)
-  cx - hw + (log(hr) - log(lohr)) / (log(hihr) - log(lohr)) * 2 * hw
+# priors ----------------------------------------------------------------------
+p_mu <- ggplot(data.frame(x = seq(-6, 6, .02)), aes(x, dnorm(x, 0, 3))) +
+  geom_area(fill = FILL, colour = INK, linewidth = 0.4) +
+  annotate("text", x = 0, y = 0.055, label = "vague", size = 3.2, colour = INK) +
+  labs(title = "mu", subtitle = "mean effect")
+p_tau <- ggplot(data.frame(x = seq(0, 2, .005)), aes(x, dhn(x, 0.5))) +
+  geom_area(fill = FILL, colour = INK, linewidth = 0.4) +
+  annotate("text", x = 0.95, y = 0.62, label = "Half-Normal(0.5)", size = 3.0, colour = INK) +
+  labs(title = "tau", subtitle = "heterogeneity between strata")
 
-cols <- data.frame(
-  cx   = c(17, 50, 83),
-  head = c("SPLIT", "DYNAMIC BORROWING", "LUMP"),
-  sub  = c("each stratum on its own", "hierarchical partial pooling", "one combined estimate"),
-  col  = c(GREY, BLUE, DGOLD),
-  hr = c(0.61, 0.58, 0.56), lo = c(0.34, 0.36, 0.37), hi = c(1.08, 0.94, 0.83),
-  tag  = c("wide interval, crosses 1", "narrower, excludes 1", "narrow, but assumes A = B"),
-  stringsAsFactors = FALSE)
+# mu and tau feed the shared distribution ------------------------------------
+p_conv <- ggplot() + xlim(0, 1) + ylim(0, 1) +
+  annotate("segment", x = 0.25, xend = 0.5, y = 0.95, yend = 0.1, linewidth = 0.4, colour = INK) +
+  annotate("segment", x = 0.75, xend = 0.5, y = 0.95, yend = 0.1, linewidth = 0.4, colour = INK) +
+  annotate("segment", x = 0.5, xend = 0.5, y = 0.1, yend = 0, linewidth = 0.5, colour = INK, arrow = arr) +
+  annotate("text", x = 0.5, y = 0.5, label = "'~'", parse = TRUE, size = 7, colour = INK)
 
-yF <- 30
-p <- ggplot() + xlim(0, 100) + ylim(4, 56) + coord_cartesian(clip = "off") + theme_void() +
-  theme(text = element_text(colour = INK))
+p_theta <- ggplot() + xlim(0, 1) + ylim(0, 1) +
+  annotate("text", x = 0.5, y = 0.62, parse = TRUE, size = 5, fontface = "bold", colour = INK,
+           label = "theta[A]*','~theta[B] ~ '~' ~ Normal(mu, tau^2)") +
+  annotate("text", x = 0.5, y = 0.24, size = 3.4, colour = INK,
+           label = "true effect of each stratum, shared through mu")
 
-# spectrum arrow
-p <- p +
-  annotate("segment", x = 10, xend = 90, y = 50, yend = 50, linewidth = 0.9, colour = INK,
-           arrow = grid::arrow(ends = "both", length = unit(0.20, "cm"), type = "closed")) +
-  annotate("text", x = 10, y = 52.2, label = "share nothing", hjust = 0, size = 3.0, colour = GREY) +
-  annotate("text", x = 90, y = 52.2, label = "share everything", hjust = 1, size = 3.0, colour = DGOLD)
+p_arrow <- ggplot() + xlim(0, 1) + ylim(0, 1.1) +
+  annotate("segment", x = 0.5, xend = 0.5, y = 1, yend = 0, linewidth = 0.5, colour = INK, arrow = arr) +
+  annotate("text", x = 0.5, y = 0.5, label = "likelihood", size = 3.2, vjust = -0.7, colour = INK)
 
-# three strategies with a mini forest of the Group A disease free survival estimate
-for (i in 1:3) {
-  cx <- cols$cx[i]; x1 <- xmap(1, cx)
-  p <- p +
-    annotate("text", x = cx, y = 44.5, label = cols$head[i], size = 3.8, fontface = "bold", colour = cols$col[i]) +
-    annotate("text", x = cx, y = 41.6, label = cols$sub[i], size = 2.7, colour = INK) +
-    annotate("segment", x = cx - 12, xend = cx + 12, y = yF - 4, yend = yF - 4, linewidth = 0.3, colour = "grey70") +
-    annotate("segment", x = x1, xend = x1, y = yF - 3.6, yend = yF + 3.2, linetype = "22", linewidth = 0.35, colour = "grey55") +
-    annotate("text", x = x1, y = yF - 5.4, label = "1", size = 2.5, colour = "grey45") +
-    annotate("text", x = xmap(0.3, cx), y = yF - 5.4, label = "0.3", size = 2.5, colour = "grey65") +
-    annotate("segment", x = xmap(cols$lo[i], cx), xend = xmap(cols$hi[i], cx), y = yF, yend = yF,
-             linewidth = 1.3, colour = cols$col[i]) +
-    annotate("point", x = xmap(cols$hr[i], cx), y = yF, size = 3.0, colour = cols$col[i]) +
-    annotate("text", x = cx, y = yF - 8.4, label = cols$tag[i], size = 2.6, colour = INK)
-}
-p <- p +
-  annotate("text", x = 50, y = 36.5, label = "Group A disease free survival estimate under each strategy",
-           size = 2.9, fontface = "italic", colour = INK) +
-  annotate("text", x = 50, y = 9.5,
-           label = "theta_A, theta_B ~ Normal(mu, tau^2);  tau is estimated from the data and sets how much the strata share",
-           size = 2.7, colour = INK)
+# likelihood and data ---------------------------------------------------------
+p_lik <- ggplot(data.frame(x = seq(-3, 3, .02)), aes(x, dnorm(x, -0.6, 0.3))) +
+  geom_area(fill = FILL, colour = INK, linewidth = 0.4) +
+  annotate("text", x = -0.6, y = 0.45, parse = TRUE, size = 3.0, colour = INK,
+           label = "Normal(theta[j], sigma[j]^2)") +
+  labs(subtitle = "observed log hazard ratio")
+p_data <- ggplot() + xlim(0, 1) + ylim(0, 1) +
+  annotate("text", x = 0.5, y = 0.5, parse = TRUE, size = 4.2, colour = INK,
+           label = "y[A]*','~y[B]~': data (strata A and B)'")
 
-save_both("figure_1_concept", p, 8.2, 4.6)
-cat("Done. Figure 1 written to figures/ as PDF and PNG.\n")
+fig1 <- ((p_mu | p_tau) / p_conv / p_theta / p_arrow / p_lik / p_data) +
+  plot_layout(heights = c(2, 1.4, 0.8, 0.7, 2, 0.7))
+
+ggsave("figures/figure_1_kruschke.pdf", fig1, width = 5.2, height = 7.2, device = cairo_pdf)
+ggsave("figures/figure_1_kruschke.png", fig1, width = 5.2, height = 7.2, dpi = 300, bg = "white")
+cat("Done. Figure 1 (Kruschke diagram) written to figures/.\n")
