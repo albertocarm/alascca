@@ -64,19 +64,24 @@ df$ypos <- ifelse(df$stratum == "A", 2, 1) + ifelse(df$type == "Dynamic borrowin
 df$label <- sprintf("%.2f (%.2f to %.2f)", df$hr, df$lo, df$hi)
 muband <- data.frame(endpoint = factor(levels(df$endpoint), levels = levels(df$endpoint)), mu = unlist(mu))
 
+LABX <- 1.30   # fixed x for numeric labels: a clean column right of the reference line
+leg  <- c("Standalone (95% CI)", "Dynamic borrowing (95% CrI)")
+
 fig2 <- ggplot(df, aes(hr, ypos, colour = type)) +
   geom_vline(xintercept = 1, colour = "grey50", linewidth = 0.4) +
   geom_vline(data = muband, aes(xintercept = mu), linetype = "22", colour = NAVY, linewidth = 0.5) +
   geom_segment(aes(x = lo, xend = hi, y = ypos, yend = ypos), linewidth = 0.9) +
   geom_point(aes(shape = type), size = 2.8, fill = "white", stroke = 1.0) +
-  geom_text(aes(x = hi, label = label), hjust = -0.1, size = 2.7, colour = INK, show.legend = FALSE) +
-  scale_colour_manual(values = c("Standalone" = GREY, "Dynamic borrowing" = BLUE)) +
-  scale_shape_manual(values = c("Standalone" = 21, "Dynamic borrowing" = 19)) +
-  scale_x_continuous(trans = "log", breaks = c(0.2, 0.3, 0.5, 0.7, 1.0, 1.4), limits = c(0.2, 2.4)) +
-  scale_y_continuous(breaks = c(1, 2), labels = c("Group B", "Group A"), limits = c(0.65, 2.5)) +
+  geom_text(aes(x = LABX, label = label), hjust = 0, size = 2.7, show.legend = FALSE) +
+  annotate("text", x = LABX, y = 2.82, label = "HR (95% CI / CrI)", hjust = 0, size = 2.6,
+           fontface = "italic", colour = INK) +
+  scale_colour_manual(values = c("Standalone" = GREY, "Dynamic borrowing" = BLUE), labels = leg) +
+  scale_shape_manual(values = c("Standalone" = 21, "Dynamic borrowing" = 19), labels = leg) +
+  scale_x_continuous(trans = "log", breaks = c(0.2, 0.3, 0.5, 0.7, 1.0), limits = c(0.2, 6.2)) +
+  scale_y_continuous(breaks = c(1, 2), labels = c("Group B", "Group A"), limits = c(0.65, 2.95)) +
   facet_wrap(~endpoint, ncol = 1) +
-  labs(x = "Hazard ratio (log scale)", y = NULL) + base_theme
-save_fig("figure_2_forest", fig2, 7.0, 5.2)
+  labs(x = "Hazard ratio (log scale); values below 1 favour aspirin", y = NULL) + base_theme
+save_fig("figure_2_forest", fig2, 7.2, 5.2)
 
 # ---- Figure 3: adaptive behaviour of the borrowing --------------------------
 sweep_one <- function(seA, seB, label) {
